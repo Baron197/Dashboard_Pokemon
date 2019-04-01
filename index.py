@@ -1,15 +1,10 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import pandas as pd
-import requests
-import plotly.graph_objs as go
+from dash.dependencies import Input, Output
+from categoryPlot import dfPokemon, listGoFunc, generateValuePlot, go
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
-# dfPokemon = pd.read_csv('PokemonKece.csv')
-res = requests.get('http://api-pokemon-baron.herokuapp.com/pokemon')
-dfPokemon = pd.DataFrame(res.json(), columns=res.json()[0].keys())
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -40,32 +35,35 @@ app.layout = html.Div([
             ])
         ]),
         dcc.Tab(label='Categorical Plots', value='tab-2', children=[
-            dcc.Graph(
-                id='example-graph',
-                figure={
-                    'data': [
-                        go.Bar(
-                            x=dfPokemon[dfPokemon['Legendary'] == 'True']['Generation'].unique(), 
-                            y=dfPokemon[dfPokemon['Legendary'] == 'True'].groupby('Generation').mean()['Total'],
-                            name='Legendary',
-                            # textposition= 'auto',
-                            text=['Avg Total'] * 6
-                        ),
-                        go.Bar(
-                            x=dfPokemon[dfPokemon['Legendary'] == 'False']['Generation'].unique(), 
-                            y=dfPokemon[dfPokemon['Legendary'] == 'False'].groupby('Generation').mean()['Total'], 
-                            name='Non Legendary',
-                            # textposition= 'auto',
-                            text=dfPokemon[dfPokemon['Legendary'] == 'False'].groupby('Generation').mean()['Total'].apply(lambda x: 'Avg Total {}'.format(x))
-                        )
-                    ],
-                    'layout': go.Layout(
-                        title= 'Bar Plot Pokemon',
-                        xaxis= { 'title': 'Generation' },
-                        yaxis= dict(title='Total')
-                        # barmode= 'stack'
+            html.Div([
+                html.Div([
+                    html.P('Jenis : '),
+                    dcc.Dropdown(
+                        id='jenisplotcategory',
+                        options=[{'label': i, 'value': i} for i in ['Bar','Box','Violin']],
+                        value='Bar'
                     )
-                }
+                ], className='col-4'),
+                html.Div([
+                    html.P('X : '),
+                    dcc.Dropdown(
+                        id='xplotcategory',
+                        options=[{'label': i, 'value': i} for i in ['Generation','Type 1','Type 2']],
+                        value='Generation'
+                    )
+                ], className='col-4'),
+                html.Div([
+                    html.P('Y : '),
+                    dcc.Dropdown(
+                        id='yplotcategory',
+                        options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
+                        value='Total'
+                    )
+                ], className='col-4')
+            ], className='row'),
+            html.Br(),
+            dcc.Graph(
+                id='categorygraph'
             )
         ]),
     ],style={
@@ -81,6 +79,33 @@ app.layout = html.Div([
     'maxWidth': '1200px',
     'margin': '0 auto'
 })
+
+@app.callback(
+    Output(component_id='categorygraph', component_property='figure'),
+    [Input(component_id='jenisplotcategory', component_property='value')]
+)
+def update_category_graph(jenisplot):
+    return dict(
+        layout= go.Layout(
+            title= '{} Plot Pokemon'.format(jenisplot),
+            xaxis= { 'title': 'Generation' },
+            yaxis= dict(title='Total'),
+            boxmode='group',
+            violinmode='group'
+        ),
+        data=[
+            listGoFunc[jenisplot](
+                x=generateValuePlot('True')['x'][jenisplot],
+                y=generateValuePlot('True')['y'][jenisplot],
+                name='Legendary'
+            ),
+            listGoFunc[jenisplot](
+                x=generateValuePlot('False')['x'][jenisplot],
+                y=generateValuePlot('False')['y'][jenisplot],
+                name='Non-Legendary'
+            )
+        ]
+    )
 
 if __name__ == '__main__':
     app.run_server(debug=True)
