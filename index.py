@@ -2,11 +2,16 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
+import requests
+import plotly.graph_objs as go
 
-# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-dfPokemon = pd.read_csv('PokemonKece.csv')
-app = dash.Dash(__name__)
+# dfPokemon = pd.read_csv('PokemonKece.csv')
+res = requests.get('http://api-pokemon-baron.herokuapp.com/pokemon')
+dfPokemon = pd.DataFrame(res.json(), columns=res.json()[0].keys())
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 def generate_table(dataframe, max_rows=10) :
     return html.Table(
@@ -39,14 +44,27 @@ app.layout = html.Div([
                 id='example-graph',
                 figure={
                     'data': [
-                        {'x': ['Male','Female'], 'y': [60, 65], 'type': 'bar', 'name': 'Smoker'},
-                        {'x': ['Male','Female'], 'y': [70, 75], 'type': 'bar', 'name': 'Non Smoker'},
+                        go.Bar(
+                            x=dfPokemon[dfPokemon['Legendary'] == 'True']['Generation'].unique(), 
+                            y=dfPokemon[dfPokemon['Legendary'] == 'True'].groupby('Generation').mean()['Total'],
+                            name='Legendary',
+                            # textposition= 'auto',
+                            text=['Avg Total'] * 6
+                        ),
+                        go.Bar(
+                            x=dfPokemon[dfPokemon['Legendary'] == 'False']['Generation'].unique(), 
+                            y=dfPokemon[dfPokemon['Legendary'] == 'False'].groupby('Generation').mean()['Total'], 
+                            name='Non Legendary',
+                            # textposition= 'auto',
+                            text=dfPokemon[dfPokemon['Legendary'] == 'False'].groupby('Generation').mean()['Total'].apply(lambda x: 'Avg Total {}'.format(x))
+                        )
                     ],
-                    'layout': {
-                        'title': 'Dash Data Visualization',
-                        'xaxis': { 'title': 'Sex' },
-                        'yaxis': dict(title='Avg Lifespan (Years)')
-                    }
+                    'layout': go.Layout(
+                        title= 'Bar Plot Pokemon',
+                        xaxis= { 'title': 'Generation' },
+                        yaxis= dict(title='Total')
+                        # barmode= 'stack'
+                    )
                 }
             )
         ]),
