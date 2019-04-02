@@ -43,7 +43,7 @@ app.layout = html.Div([
                         options=[{'label': i, 'value': i} for i in ['Bar','Box','Violin']],
                         value='Bar'
                     )
-                ], className='col-4'),
+                ], className='col-3'),
                 html.Div([
                     html.P('X : '),
                     dcc.Dropdown(
@@ -51,7 +51,7 @@ app.layout = html.Div([
                         options=[{'label': i, 'value': i} for i in ['Generation','Type 1','Type 2']],
                         value='Generation'
                     )
-                ], className='col-4'),
+                ], className='col-3'),
                 html.Div([
                     html.P('Y : '),
                     dcc.Dropdown(
@@ -59,13 +59,92 @@ app.layout = html.Div([
                         options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
                         value='Total'
                     )
-                ], className='col-4')
+                ], className='col-3'),
+                html.Div([
+                    html.P('Stats : '),
+                    dcc.Dropdown(
+                        id='statsplotcategory',
+                        options=[i for i in [{ 'label': 'Mean', 'value': 'mean' },
+                                            { 'label': 'Standard Deviation', 'value': 'std' },
+                                            { 'label': 'Count', 'value': 'count' },
+                                            { 'label': 'Min', 'value': 'min' },
+                                            { 'label': 'Max', 'value': 'max' },
+                                            { 'label': '25th Percentiles', 'value': '25%' },
+                                            { 'label': 'Median', 'value': '50%' },
+                                            { 'label': '75th Percentiles', 'value': '75%' }]],
+                        value='mean',
+                        disabled=False
+                    )
+                ], className='col-3')
             ], className='row'),
-            html.Br(),
+            html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
             dcc.Graph(
                 id='categorygraph'
             )
         ]),
+        dcc.Tab(label='Scatter Plot', value='tab-3', children=[
+            html.Div([
+                html.Div([
+                    html.P('Hue : '),
+                    dcc.Dropdown(
+                        id='hueplotscatter',
+                        options=[{'label': i, 'value': i} for i in ['Legendary','Generation','Type 1','Type 2']],
+                        value='Legendary'
+                    )
+                ], className='col-4'),
+                html.Div([
+                    html.P('X : '),
+                    dcc.Dropdown(
+                        id='xplotscatter',
+                        options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
+                        value='Attack'
+                    )
+                ], className='col-4'),
+                html.Div([
+                    html.P('Y : '),
+                    dcc.Dropdown(
+                        id='yplotscatter',
+                        options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
+                        value='HP'
+                    )
+                ], className='col-4')
+            ], className='row'),
+            html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
+            dcc.Graph(
+                id='scattergraph'
+            )
+        ]),
+        dcc.Tab(label='Pie Chart', value='tab-4', children=[
+             html.Div([
+                html.Div([
+                    html.P('Group : '),
+                    dcc.Dropdown(
+                        id='groupplotpie',
+                        options=[{'label': i, 'value': i} for i in ['Legendary','Generation','Type 1','Type 2']],
+                        value='Legendary'
+                    )
+                ], className='col-4')
+            ], className='row'),
+            html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
+            dcc.Graph(
+                id='piegraph',
+                figure=dict(
+                    data=[
+                        go.Pie(
+                            labels=['Legendary','Non-Legendary'],
+                            values=[
+                                dfPokemon.groupby('Legendary')['Total'].count()['True'],
+                                len(dfPokemon[dfPokemon['Legendary'] == 'False'])
+                            ]
+                        )
+                    ],
+                    layout=go.Layout(
+                        title='Pie Chart Pokemon',
+                        margin={'l': 160, 'b': 40, 't': 40, 'r': 10}
+                    )
+                )
+            )
+        ])
     ],style={
         'fontFamily': 'system-ui'
     }, content_style={
@@ -84,9 +163,10 @@ app.layout = html.Div([
     Output(component_id='categorygraph', component_property='figure'),
     [Input(component_id='jenisplotcategory', component_property='value'),
     Input(component_id='xplotcategory', component_property='value'),
-    Input(component_id='yplotcategory', component_property='value')]
+    Input(component_id='yplotcategory', component_property='value'),
+    Input(component_id='statsplotcategory', component_property='value')]
 )
-def update_category_graph(jenisplot,x,y):
+def update_category_graph(jenisplot,x,y,stats):
     return dict(
         layout= go.Layout(
             title= '{} Plot Pokemon'.format(jenisplot),
@@ -98,16 +178,63 @@ def update_category_graph(jenisplot,x,y):
         data=[
             listGoFunc[jenisplot](
                 x=generateValuePlot('True',x,y)['x'][jenisplot],
-                y=generateValuePlot('True',x,y)['y'][jenisplot],
+                y=generateValuePlot('True',x,y,stats)['y'][jenisplot],
                 name='Legendary'
             ),
             listGoFunc[jenisplot](
                 x=generateValuePlot('False',x,y)['x'][jenisplot],
-                y=generateValuePlot('False',x,y)['y'][jenisplot],
+                y=generateValuePlot('False',x,y,stats)['y'][jenisplot],
                 name='Non-Legendary'
             )
         ]
     )
+
+@app.callback(
+    Output(component_id='statsplotcategory', component_property='disabled'),
+    [Input(component_id='jenisplotcategory', component_property='value')]
+)
+def update_disabled_stats(jenisplot):
+    if(jenisplot == 'Bar') :
+        return False
+    return True
+
+legendScatterDict = {
+    'Legendary': { 'True': 'Legendary', 'False': 'Non-Legendary' },
+    'Generation': { 1: '1st Generation', 
+            2: '2nd Generation', 
+            3: '3rd Generation', 
+            4: '4th Generation',
+            5: '5th Generation',
+            6: '6th Generation'
+    },
+    'Type 1': { i:i for i in dfPokemon['Type 1'].unique()},
+    'Type 2': { i:i for i in dfPokemon['Type 2'].unique()}
+}
+
+@app.callback(
+    Output(component_id='scattergraph', component_property='figure'),
+    [Input(component_id='hueplotscatter', component_property='value'),
+    Input(component_id='xplotscatter', component_property='value'),
+    Input(component_id='yplotscatter', component_property='value')]
+)
+def update_scatter_plot(hue,x,y):
+    return dict(
+                data=[
+                    go.Scatter(
+                        x=dfPokemon[dfPokemon[hue] == val][x],
+                        y=dfPokemon[dfPokemon[hue] == val][y],
+                        name=legendScatterDict[hue][val],
+                        mode='markers'
+                    ) for val in dfPokemon[hue].unique()
+                ],
+                layout=go.Layout(
+                    title= 'Scatter Plot Pokemon',
+                    xaxis= { 'title': x },
+                    yaxis= dict(title = y),
+                    margin={ 'l': 40, 'b': 40, 't': 40, 'r': 10 },
+                    hovermode='closest'
+                )
+            )
 
 if __name__ == '__main__':
     app.run_server(debug=True)
