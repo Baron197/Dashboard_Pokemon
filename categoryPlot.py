@@ -11,16 +11,16 @@ listGoFunc = {
     'Violin': go.Violin
 }
 
-def generateValuePlot(legendary) :
+def generateValuePlot(legendary, x, y) :
     return {
         'x': {
-            'Bar': dfPokemon[dfPokemon['Legendary'] == legendary]['Generation'].unique(),
-            'Box': dfPokemon[dfPokemon['Legendary'] == legendary]['Generation'],
-            'Violin': dfPokemon[dfPokemon['Legendary'] == legendary]['Generation']
+            'Bar': dfPokemon[dfPokemon['Legendary'] == legendary][x].unique(),
+            'Box': dfPokemon[dfPokemon['Legendary'] == legendary][x],
+            'Violin': dfPokemon[dfPokemon['Legendary'] == legendary][x]
         },
         'y': {
-            'Bar': dfPokemon[dfPokemon['Legendary'] == legendary].groupby('Generation').mean()['Total'],
-            'Box': dfPokemon[dfPokemon['Legendary'] == legendary]['Total'],
-            'Violin': dfPokemon[dfPokemon['Legendary'] == legendary]['Total']
+            'Bar': dfPokemon[dfPokemon['Legendary'] == legendary].groupby(x).mean()[y],
+            'Box': dfPokemon[dfPokemon['Legendary'] == legendary][y],
+            'Violin': dfPokemon[dfPokemon['Legendary'] == legendary][y]
         }
     }

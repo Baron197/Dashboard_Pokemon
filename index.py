@@ -82,26 +82,28 @@ app.layout = html.Div([
 
 @app.callback(
     Output(component_id='categorygraph', component_property='figure'),
-    [Input(component_id='jenisplotcategory', component_property='value')]
+    [Input(component_id='jenisplotcategory', component_property='value'),
+    Input(component_id='xplotcategory', component_property='value'),
+    Input(component_id='yplotcategory', component_property='value')]
 )
-def update_category_graph(jenisplot):
+def update_category_graph(jenisplot,x,y):
     return dict(
         layout= go.Layout(
             title= '{} Plot Pokemon'.format(jenisplot),
-            xaxis= { 'title': 'Generation' },
-            yaxis= dict(title='Total'),
+            xaxis= { 'title': x },
+            yaxis= dict(title=y),
             boxmode='group',
             violinmode='group'
         ),
         data=[
             listGoFunc[jenisplot](
-                x=generateValuePlot('True')['x'][jenisplot],
-                y=generateValuePlot('True')['y'][jenisplot],
+                x=generateValuePlot('True',x,y)['x'][jenisplot],
+                y=generateValuePlot('True',x,y)['y'][jenisplot],
                 name='Legendary'
             ),
             listGoFunc[jenisplot](
-                x=generateValuePlot('False')['x'][jenisplot],
-                y=generateValuePlot('False')['y'][jenisplot],
+                x=generateValuePlot('False',x,y)['x'][jenisplot],
+                y=generateValuePlot('False',x,y)['y'][jenisplot],
                 name='Non-Legendary'
             )
         ]
