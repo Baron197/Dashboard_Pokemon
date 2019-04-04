@@ -1,7 +1,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from categoryPlot import dfPokemon, listGoFunc, generateValuePlot, go
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -29,9 +29,77 @@ app.layout = html.Div([
     ),
     dcc.Tabs(id="tabs", value='tab-1', children=[
         dcc.Tab(label='Data Pokemon', value='tab-1', children=[
+            html.Div([
+                html.Div([
+                    html.P('Name : '),
+                    dcc.Input(
+                        id='filternametable',
+                        type='text',
+                        value='',
+                        style=dict(width='100%')
+                    )
+                ], className='col-4'),
+                html.Div([
+                    html.P('Generation : '),
+                    dcc.Dropdown(
+                        id='filtergenerationtable',
+                        options=[i for i in [{ 'label': 'All Generation', 'value': '' },
+                                            { 'label': '1st Generation', 'value': '1' },
+                                            { 'label': '2nd Generation', 'value': '2' },
+                                            { 'label': '3rd Generation', 'value': '3' },
+                                            { 'label': '4th Generation', 'value': '4' },
+                                            { 'label': '5th Generation', 'value': '5' },
+                                            { 'label': '6th Generation', 'value': '6' }]],
+                        value=''
+                    )
+                ], className='col-4'),
+                html.Div([
+                    html.P('Category : '),
+                    dcc.Dropdown(
+                        id='filtercategorytable',
+                        options=[i for i in [{ 'label': 'All Category', 'value': '' },
+                                            { 'label': 'Legendary', 'value': 'True' },
+                                            { 'label': 'Non-Legendary', 'value': 'False' }]],
+                        value=''
+                    )
+                ], className='col-4')
+            ], className='row'),
+            html.Br(),
+            html.Div([
+                html.Div([
+                    html.P('Total : '),
+                    dcc.RangeSlider(
+                        marks={i: '{}'.format(i) for i in range(dfPokemon['Total'].min(), dfPokemon['Total'].max()+1,100)},
+                        min=dfPokemon['Total'].min(),
+                        max=dfPokemon['Total'].max(),
+                        value=[dfPokemon['Total'].min(),dfPokemon['Total'].max()],
+                        className='rangeslider',
+                        id='filtertotaltable'
+                    )
+                ], className='col-9'),
+                html.Div([
+
+                ],className='col-1'),
+                html.Div([
+                    html.Br(),
+                    html.Button('Search', id='buttonsearch', style=dict(width='100%'))
+                ], className='col-2')
+            ], className='row'),
+            html.Br(),html.Br(),html.Br(),
+            html.Div([
+                html.Div([
+                    html.P('Max Rows : '),
+                    dcc.Input(
+                        id='filterrowstable',
+                        type='number',
+                        value=10,
+                        style=dict(width='100%')
+                    )
+                ], className='col-1')
+            ], className='row'),
             html.Center([
                 html.H2('Data Pokemon', className='title'),
-                generate_table(dfPokemon)
+                html.Div(id='tablediv')
             ])
         ]),
         dcc.Tab(label='Categorical Plots', value='tab-2', children=[
@@ -127,22 +195,7 @@ app.layout = html.Div([
             ], className='row'),
             html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
             dcc.Graph(
-                id='piegraph',
-                figure=dict(
-                    data=[
-                        go.Pie(
-                            labels=['Legendary','Non-Legendary'],
-                            values=[
-                                dfPokemon.groupby('Legendary')['Total'].count()['True'],
-                                len(dfPokemon[dfPokemon['Legendary'] == 'False'])
-                            ]
-                        )
-                    ],
-                    layout=go.Layout(
-                        title='Pie Chart Pokemon',
-                        margin={'l': 160, 'b': 40, 't': 40, 'r': 10}
-                    )
-                )
+                id='piegraph'
             )
         ])
     ],style={
@@ -235,6 +288,45 @@ def update_scatter_plot(hue,x,y):
                     hovermode='closest'
                 )
             )
+
+@app.callback(
+    Output(component_id='piegraph', component_property='figure'),
+    [Input(component_id='groupplotpie', component_property='value')]
+)
+def update_pie_plot(group):
+    return dict(
+                data=[
+                    go.Pie(
+                        labels=[legendScatterDict[group][val] for val in dfPokemon[group].unique()],
+                        values=[
+                            len(dfPokemon[dfPokemon[group] == val])
+                            for val in dfPokemon[group].unique()
+                        ]
+                    )
+                ],
+                layout=go.Layout(
+                    title='Pie Chart Pokemon',
+                    margin={'l': 160, 'b': 40, 't': 40, 'r': 10}
+                )
+            )
+
+@app.callback(
+    Output(component_id='tablediv', component_property='children'),
+    [Input('buttonsearch', 'n_clicks'),
+    Input('filterrowstable', 'value')],
+    [State('filternametable', 'value'),
+    State('filtergenerationtable', 'value'),
+    State('filtercategorytable', 'value'),
+    State('filtertotaltable', 'value')]
+)
+def update_table(n_clicks,maxrows, name,generation,category,total):
+    dfFilter = dfPokemon[(dfPokemon['Name'].str.contains(name)) & ((dfPokemon['Total'] >= total[0]) & (dfPokemon['Total'] <= total[1]))]
+    if(generation != '') :
+        dfFilter = dfFilter[dfFilter['Generation'] == int(generation)]
+    if(category != '') :
+        dfFilter = dfFilter[dfFilter['Legendary'] == category]
+
+    return generate_table(dfFilter, max_rows=maxrows)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
