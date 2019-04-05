@@ -3,6 +3,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from categoryPlot import dfPokemon, listGoFunc, generateValuePlot, go
+from plotly import tools
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -69,7 +70,7 @@ app.layout = html.Div([
                 html.Div([
                     html.P('Total : '),
                     dcc.RangeSlider(
-                        marks={i: '{}'.format(i) for i in range(dfPokemon['Total'].min(), dfPokemon['Total'].max()+1,100)},
+                        marks={i: str(i) for i in range(dfPokemon['Total'].min(), dfPokemon['Total'].max()+1,100)},
                         min=dfPokemon['Total'].min(),
                         max=dfPokemon['Total'].max(),
                         value=[dfPokemon['Total'].min(),dfPokemon['Total'].max()],
@@ -196,6 +197,30 @@ app.layout = html.Div([
             html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
             dcc.Graph(
                 id='piegraph'
+            )
+        ]),
+        dcc.Tab(label='Histogram', value='tab-5', children=[
+            html.Div([
+                html.Div([
+                    html.P('X : '),
+                    dcc.Dropdown(
+                        id='xplothist',
+                        options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
+                        value='Total'
+                    )
+                ], className='col-3'),
+                html.Div([
+                    html.P('Hue : '),
+                    dcc.Dropdown(
+                        id='hueplothist',
+                        options=[{'label': i, 'value': i} for i in ['All','Generation','Legendary']],
+                        value='All'
+                    )
+                ], className='col-3')
+            ], className='row'),
+            html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
+            dcc.Graph(
+                id='histgraph'
             )
         ])
     ],style={
@@ -327,6 +352,106 @@ def update_table(n_clicks,maxrows, name,generation,category,total):
         dfFilter = dfFilter[dfFilter['Legendary'] == category]
 
     return generate_table(dfFilter, max_rows=maxrows)
+
+rowcolhist = {
+    'All': { 'row': 1, 'col': 1 },
+    'Generation': { 'row': 3, 'col': 2 },
+    'Legendary': { 'row': 1, 'col': 2 }
+}
+
+@app.callback(
+    Output(component_id='histgraph', component_property='figure'),
+    [Input(component_id='xplothist', component_property='value'),
+    Input(component_id='hueplothist', component_property='value')]
+)
+def update_hist_plot(x, hue):
+    if(hue == 'All') :
+        return dict(
+                data=[
+                    go.Histogram(
+                        x=dfPokemon[
+                            (dfPokemon[x] >= (dfPokemon[x].mean() - (2 * dfPokemon[x].std())))
+                            & (dfPokemon[x] <= (dfPokemon[x].mean() + (2 * dfPokemon[x].std())))
+                        ][x],
+                        name='Normal',
+                        marker=dict(
+                            color='green'
+                        )
+                    ),
+                    go.Histogram(
+                        x=dfPokemon[
+                            (dfPokemon[x] < (dfPokemon[x].mean() - (2 * dfPokemon[x].std())))
+                            | (dfPokemon[x] > (dfPokemon[x].mean() + (2 * dfPokemon[x].std())))
+                        ][x],
+                        name='Not Normal',
+                        marker=dict(
+                            color='red'
+                        )
+                    )
+                ],
+                layout=go.Layout(
+                    title='Histogram {} Stats Pokemon'.format(x),
+                    xaxis=dict(title=x),
+                    yaxis=dict(title='Count'),
+                    height=450, width=1000
+                )
+            )
+    subtitles = []
+    for val in dfPokemon[hue].unique() :
+        dfSub = dfPokemon[dfPokemon[hue] == val]
+        outlierCount = len(dfSub[
+                        (dfSub[x] < (dfSub[x].mean() - (2 * dfSub[x].std())))
+                        | (dfSub[x] > (dfSub[x].mean() + (2 * dfSub[x].std())))
+                    ])
+        subtitles.append(legendScatterDict[hue][val] + " ({}% outlier)".format(round(outlierCount/len(dfSub) * 100, 2)))
+
+    fig = tools.make_subplots(
+        rows=rowcolhist[hue]['row'], cols=rowcolhist[hue]['col'],
+        subplot_titles=subtitles
+    )
+    uniqueData = dfPokemon[hue].unique().reshape(rowcolhist[hue]['row'],rowcolhist[hue]['col'])
+    index=1
+    for r in range(1, rowcolhist[hue]['row']+1) :
+        for c in range(1, rowcolhist[hue]['col']+1) :
+            dfSub = dfPokemon[dfPokemon[hue] == uniqueData[r-1,c-1]]
+            fig.append_trace(
+                go.Histogram(
+                    x=dfSub[
+                        (dfSub[x] >= (dfSub[x].mean() - (2 * dfSub[x].std())))
+                        & (dfSub[x] <= (dfSub[x].mean() + (2 * dfSub[x].std())))
+                    ][x],
+                    name='Normal {} {}'.format(hue,uniqueData[r-1,c-1]),
+                    marker=dict(
+                        color='green'
+                    )
+                ),r,c
+            )
+            fig.append_trace(
+                go.Histogram(
+                    x=dfSub[
+                        (dfSub[x] < (dfSub[x].mean() - (2 * dfSub[x].std())))
+                        | (dfSub[x] > (dfSub[x].mean() + (2 * dfSub[x].std())))
+                    ][x],
+                    name='Not Normal {} {}'.format(hue, uniqueData[r-1,c-1]),
+                    marker=dict(
+                        color='red'
+                    )
+                ),r,c
+            )
+            fig['layout']['xaxis'+str(index)].update(title=x.capitalize())
+            fig['layout']['yaxis'+str(index)].update(title='Count')
+            index += 1
+
+    if(hue == 'Generation') :
+        fig['layout'].update(height=700, width=1000,
+                            title='Histogram {} Stats Pokemon'.format(x))
+    else :
+        fig['layout'].update(height=450, width=1000,
+                            title='Histogram {} Stats Pokemon'.format(x))
+
+    return fig
+
+    
 
 if __name__ == '__main__':
     app.run_server(debug=True)
