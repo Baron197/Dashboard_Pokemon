@@ -10,9 +10,12 @@ import plotly.graph_objs as go
 
 from src.components.dataPokemon import dfPokemon, dfPokemonTable
 from src.components.tab1.view import renderIsiTab1
-from src.components.tab2.view import listGoFunc, generateValuePlot
+from src.components.tab2.view import renderIsiTab2
+from src.components.tab3.view import renderIsiTab3
 
 from src.components.tab1.callbacks import callbacksortingtable,callbackfiltertable
+from src.components.tab2.callbacks import callbackupdatecatgraph
+from src.components.tab3.callbacks import callbackUpdateScatterGraph
 
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -30,86 +33,8 @@ app.layout = html.Div([
     ),
     dcc.Tabs(id="tabs", value='tab-1', children=[
         dcc.Tab(label='Data Pokemon', value='tab-1', children=renderIsiTab1()),
-        dcc.Tab(label='Categorical Plots', value='tab-2', children=[
-            html.Div([
-                html.Div([
-                    html.P('Jenis : '),
-                    dcc.Dropdown(
-                        id='jenisplotcategory',
-                        options=[{'label': i, 'value': i} for i in ['Bar','Box','Violin']],
-                        value='Bar'
-                    )
-                ], className='col-3'),
-                html.Div([
-                    html.P('X : '),
-                    dcc.Dropdown(
-                        id='xplotcategory',
-                        options=[{'label': i, 'value': i} for i in ['Generation','Type 1','Type 2']],
-                        value='Generation'
-                    )
-                ], className='col-3'),
-                html.Div([
-                    html.P('Y : '),
-                    dcc.Dropdown(
-                        id='yplotcategory',
-                        options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
-                        value='Total'
-                    )
-                ], className='col-3'),
-                html.Div([
-                    html.P('Stats : '),
-                    dcc.Dropdown(
-                        id='statsplotcategory',
-                        options=[i for i in [{ 'label': 'Mean', 'value': 'mean' },
-                                            { 'label': 'Standard Deviation', 'value': 'std' },
-                                            { 'label': 'Count', 'value': 'count' },
-                                            { 'label': 'Min', 'value': 'min' },
-                                            { 'label': 'Max', 'value': 'max' },
-                                            { 'label': '25th Percentiles', 'value': '25%' },
-                                            { 'label': 'Median', 'value': '50%' },
-                                            { 'label': '75th Percentiles', 'value': '75%' }]],
-                        value='mean',
-                        disabled=False
-                    )
-                ], className='col-3')
-            ], className='row'),
-            html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
-            dcc.Graph(
-                id='categorygraph'
-            )
-        ]),
-        dcc.Tab(label='Scatter Plot', value='tab-3', children=[
-            html.Div([
-                html.Div([
-                    html.P('Hue : '),
-                    dcc.Dropdown(
-                        id='hueplotscatter',
-                        options=[{'label': i, 'value': i} for i in ['Legendary','Generation','Type 1','Type 2']],
-                        value='Legendary'
-                    )
-                ], className='col-4'),
-                html.Div([
-                    html.P('X : '),
-                    dcc.Dropdown(
-                        id='xplotscatter',
-                        options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
-                        value='Attack'
-                    )
-                ], className='col-4'),
-                html.Div([
-                    html.P('Y : '),
-                    dcc.Dropdown(
-                        id='yplotscatter',
-                        options=[{'label': i, 'value': i} for i in dfPokemon.columns[4:11]],
-                        value='HP'
-                    )
-                ], className='col-4')
-            ], className='row'),
-            html.Br(),html.Br(),html.Br(),html.Br(),html.Br(),
-            dcc.Graph(
-                id='scattergraph'
-            )
-        ]),
+        dcc.Tab(label='Categorical Plots', value='tab-2', children=renderIsiTab2()),
+        dcc.Tab(label='Scatter Plot', value='tab-3', children=renderIsiTab3()),
         dcc.Tab(label='Pie Chart', value='tab-4', children=[
              html.Div([
                 html.Div([
@@ -199,27 +124,7 @@ def update_table(n_clicks,maxrows, name,generation,category,total):
     Input(component_id='statsplotcategory', component_property='value')]
 )
 def update_category_graph(jenisplot,x,y,stats):
-    return dict(
-        layout= go.Layout(
-            title= '{} Plot Pokemon'.format(jenisplot),
-            xaxis= { 'title': x },
-            yaxis= dict(title=y),
-            boxmode='group',
-            violinmode='group'
-        ),
-        data=[
-            listGoFunc[jenisplot](
-                x=generateValuePlot('True',x,y)['x'][jenisplot],
-                y=generateValuePlot('True',x,y,stats)['y'][jenisplot],
-                name='Legendary'
-            ),
-            listGoFunc[jenisplot](
-                x=generateValuePlot('False',x,y)['x'][jenisplot],
-                y=generateValuePlot('False',x,y,stats)['y'][jenisplot],
-                name='Non-Legendary'
-            )
-        ]
-    )
+    return callbackupdatecatgraph(jenisplot,x,y,stats)
 
 @app.callback(
     Output(component_id='statsplotcategory', component_property='disabled'),
@@ -230,19 +135,6 @@ def update_disabled_stats(jenisplot):
         return False
     return True
 
-legendScatterDict = {
-    'Legendary': { 'True': 'Legendary', 'False': 'Non-Legendary' },
-    'Generation': { 1: '1st Generation', 
-            2: '2nd Generation', 
-            3: '3rd Generation', 
-            4: '4th Generation',
-            5: '5th Generation',
-            6: '6th Generation'
-    },
-    'Type 1': { i:i for i in dfPokemon['Type 1'].unique()},
-    'Type 2': { i:i for i in dfPokemon['Type 2'].unique()}
-}
-
 @app.callback(
     Output(component_id='scattergraph', component_property='figure'),
     [Input(component_id='hueplotscatter', component_property='value'),
@@ -250,23 +142,7 @@ legendScatterDict = {
     Input(component_id='yplotscatter', component_property='value')]
 )
 def update_scatter_plot(hue,x,y):
-    return dict(
-                data=[
-                    go.Scatter(
-                        x=dfPokemon[dfPokemon[hue] == val][x],
-                        y=dfPokemon[dfPokemon[hue] == val][y],
-                        name=legendScatterDict[hue][val],
-                        mode='markers'
-                    ) for val in dfPokemon[hue].unique()
-                ],
-                layout=go.Layout(
-                    title= 'Scatter Plot Pokemon',
-                    xaxis= { 'title': x },
-                    yaxis= dict(title = y),
-                    margin={ 'l': 40, 'b': 40, 't': 40, 'r': 10 },
-                    hovermode='closest'
-                )
-            )
+    return callbackUpdateScatterGraph(hue,x,y)
 
 @app.callback(
     Output(component_id='piegraph', component_property='figure'),
@@ -276,7 +152,7 @@ def update_pie_plot(group):
     return dict(
                 data=[
                     go.Pie(
-                        labels=[legendScatterDict[group][val] for val in dfPokemon[group].unique()],
+                        labels=[legendDict[group][val] for val in dfPokemon[group].unique()],
                         values=[
                             len(dfPokemon[dfPokemon[group] == val])
                             for val in dfPokemon[group].unique()
@@ -340,7 +216,7 @@ def update_hist_plot(x, hue, std):
                         (dfSub[x] < (dfSub[x].mean() - (std * dfSub[x].std())))
                         | (dfSub[x] > (dfSub[x].mean() + (std * dfSub[x].std())))
                     ])
-        subtitles.append(legendScatterDict[hue][val] + " ({}% outlier)".format(round(outlierCount/len(dfSub) * 100, 2)))
+        subtitles.append(legendDict[hue][val] + " ({}% outlier)".format(round(outlierCount/len(dfSub) * 100, 2)))
 
     fig = tools.make_subplots(
         rows=rowcolhist[hue]['row'], cols=rowcolhist[hue]['col'],
