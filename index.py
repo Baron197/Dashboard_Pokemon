@@ -17,6 +17,8 @@ from src.components.tab1.callbacks import callbacksortingtable,callbackfiltertab
 from src.components.tab2.callbacks import callbackupdatecatgraph
 from src.components.tab3.callbacks import callbackUpdateScatterGraph
 
+from src.components.support import legendDict
+
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__)

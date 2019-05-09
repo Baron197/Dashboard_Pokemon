@@ -1,3 +1,5 @@
+from src.components.dataPokemon import dfPokemon
+
 legendDict = {
     'Legendary': { 'True': 'Legendary', 'False': 'Non-Legendary' },
     'Generation': { 1: '1st Generation', 
