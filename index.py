@@ -12,6 +12,7 @@ from src.components.dataPokemon import dfPokemon, dfPokemonTable
 from src.components.tab1.view import renderIsiTab1
 from src.components.tab2.view import renderIsiTab2
 from src.components.tab3.view import renderIsiTab3
+from src.components.tab6.view import renderIsiTab6
 
 from src.components.tab1.callbacks import callbacksortingtable,callbackfiltertable
 from src.components.tab2.callbacks import callbackupdatecatgraph
@@ -84,7 +85,8 @@ app.layout = html.Div([
             dcc.Graph(
                 id='histgraph'
             )
-        ])
+        ]),
+        dcc.Tab(label='Test Predict', value='tab-6', children=renderIsiTab6())
     ],style={
         'fontFamily': 'system-ui'
     }, content_style={
