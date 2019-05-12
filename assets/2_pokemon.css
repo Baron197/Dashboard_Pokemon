@@ -416,7 +416,7 @@
 .title {
     text-align: center;
     color: #008080;
-    font-size: 25px;
+    font-size: 30px;
 }
 
 /* table, th, td {
@@ -427,4 +427,8 @@
 
 .rangeslider {
     margin-left: 10px;
+}
+
+.paddingtop {
+  padding-top: 15px;
 }

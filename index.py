@@ -17,6 +17,7 @@ from src.components.tab6.view import renderIsiTab6
 from src.components.tab1.callbacks import callbacksortingtable,callbackfiltertable
 from src.components.tab2.callbacks import callbackupdatecatgraph
 from src.components.tab3.callbacks import callbackUpdateScatterGraph
+from src.components.tab6.callbacks import callbackpredict
 
 from src.components.support import legendDict
 
@@ -267,6 +268,24 @@ def update_hist_plot(x, hue, std):
                             title='Histogram {} Stats Pokemon'.format(x))
 
     return fig
+
+@app.callback(
+    Output(component_id='outputpredict', component_property='children'),
+    [Input('buttonpredict', 'n_clicks')],
+    [State('predictname', 'value'),
+    State('predicttype1', 'value'),
+    State('predicttype2', 'value'),
+    State('predictgeneration', 'value'),
+    State('predicttotal', 'value'),
+    State('predicthp', 'value'),
+    State('predictattack','value'),
+    State('predictdefense', 'value'),
+    State('predictspatk', 'value'),
+    State('predictspdef', 'value'),
+    State('predictspeed', 'value')]
+)
+def testpredict(n_clicks,name,type1,type2,generation,total,hp,attack,defense,spatk,spdef,speed):
+    return callbackpredict(n_clicks,name,type1,type2,generation,total,hp,attack,defense,spatk,spdef,speed)
 
     
 
