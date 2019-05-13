@@ -13,11 +13,13 @@ from src.components.tab1.view import renderIsiTab1
 from src.components.tab2.view import renderIsiTab2
 from src.components.tab3.view import renderIsiTab3
 from src.components.tab6.view import renderIsiTab6
+from src.components.tab7.view import renderIsiTab7
 
 from src.components.tab1.callbacks import callbacksortingtable,callbackfiltertable
 from src.components.tab2.callbacks import callbackupdatecatgraph
 from src.components.tab3.callbacks import callbackUpdateScatterGraph
 from src.components.tab6.callbacks import callbackpredict
+from src.components.tab7.callbacks import callbacksortingtablehistory, callbackfiltertablehistory
 
 from src.components.support import legendDict
 
@@ -87,7 +89,8 @@ app.layout = html.Div([
                 id='histgraph'
             )
         ]),
-        dcc.Tab(label='Test Predict', value='tab-6', children=renderIsiTab6())
+        dcc.Tab(label='Test Predict', value='tab-6', children=renderIsiTab6()),
+        dcc.Tab(label='History Prediction', value='tab-7', children=renderIsiTab7())
     ],style={
         'fontFamily': 'system-ui'
     }, content_style={
@@ -101,6 +104,21 @@ app.layout = html.Div([
     'maxWidth': '1200px',
     'margin': '0 auto'
 })
+
+@app.callback(
+    Output('table-history-prediction', "data"),
+    [Input('table-history-prediction', "pagination_settings"),
+     Input('table-history-prediction', "sorting_settings")])
+def update_sort_paging_table_history(pagination_settings, sorting_settings):
+    return callbacksortingtablehistory(pagination_settings,sorting_settings)
+
+@app.callback(
+    Output(component_id='tablehistorydiv', component_property='children'),
+    [Input('filtercreatedbyhistory', 'value'),
+    Input('filterrowshistory', 'value')]
+)
+def update_table_history(createdby, maxrows):
+    return callbackfiltertablehistory(createdby, maxrows)
 
 @app.callback(
     Output('table-multicol-sorting', "data"),

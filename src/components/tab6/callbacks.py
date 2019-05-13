@@ -38,7 +38,7 @@ def callbackpredict(n_clicks,name,type1,type2,generation,total,hp,attack,defense
             'legendaryproba': predictProba[0,1],
             'createdby': "Baron"
         }
-        print(data)
+
         res = requests.post('http://api-pokemon-baron.herokuapp.com/saveprediction', data = data)
         print(res.content)
 
