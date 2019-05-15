@@ -18,7 +18,7 @@ from src.components.tab7.view import renderIsiTab7
 from src.components.tab1.callbacks import callbacksortingtable,callbackfiltertable
 from src.components.tab2.callbacks import callbackupdatecatgraph
 from src.components.tab3.callbacks import callbackUpdateScatterGraph
-from src.components.tab6.callbacks import callbackpredict
+from src.components.tab6.callbacks import callbackpredict, callback_table_prediction
 from src.components.tab7.callbacks import callbacksortingtablehistory, callbackfiltertablehistory
 
 from src.components.support import legendDict
@@ -305,7 +305,12 @@ def update_hist_plot(x, hue, std):
 def testpredict(n_clicks,name,type1,type2,generation,total,hp,attack,defense,spatk,spdef,speed):
     return callbackpredict(n_clicks,name,type1,type2,generation,total,hp,attack,defense,spatk,spdef,speed)
 
-    
+@app.callback(Output('output-data-upload', 'children'),
+              [Input('upload-data', 'contents')],
+              [State('upload-data', 'filename'),
+               State('upload-data', 'last_modified')])
+def update_output(list_of_contents, list_of_names, list_of_dates):
+    return callback_table_prediction(list_of_contents,list_of_names,list_of_dates)  
 
 if __name__ == '__main__':
     app.run_server(debug=True)
